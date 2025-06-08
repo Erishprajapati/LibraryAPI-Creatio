@@ -72,3 +72,22 @@ def show(book_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Book not found")
     return book
 
+@app.put('/home/{book_id}', status_code=status.HTTP_202_ACCEPTED)
+def update(book_id: int, request: schemas.Book, db: Session = Depends(get_db)):
+    book = db.query(models.Book).filter(models.Book.id == book_id).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    book.title = request.title
+    book.description = request.description
+    db.commit()
+    db.refresh(book)
+    return book
+
+
+@app.delete('/home/{book_id}', status_code=status.HTTP_204_NO_CONTENT)
+def destroy(book_id: int, db: Session = Depends(get_db)):
+    db.query(models.Book).filter(models.Book.id == book_id).delete(synchronize_session=False)
+    db.commit()
+    return 'done'
+
