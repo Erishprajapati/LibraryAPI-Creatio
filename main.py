@@ -36,7 +36,7 @@
 # def add_book(request: Book):
 #     return {'data' : f'Book have been added as Name:{request.title} by Author: {request.author}'}
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException, status
 import models,schemas
 from database import engine, SessionLocal
 import schemas  
@@ -52,10 +52,23 @@ def get_db():
         db.close()
 
 
-@app.post('/')
+@app.post('/create', status_code=status.HTTP_201_CREATED)
 def create(request: schemas.Book, db:Session = Depends(get_db)):
     new_book = models.Book(title=request.title, description = request.description)
     db.add(new_book)
     db.commit()
     db.refresh(new_book)
     return new_book
+
+@app.get('/home')
+def all(db:Session = Depends(get_db)):
+    books = db.query(models.Book).all()
+    return books
+
+@app.get("/home/{book_id}") #fixed code
+def show(book_id: int, db: Session = Depends(get_db)):
+    book = db.query(models.Book).filter(models.Book.id == book_id).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    return book
+
