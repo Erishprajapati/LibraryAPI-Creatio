@@ -54,6 +54,12 @@ def get_db():
 
 @app.post('/create', status_code=status.HTTP_201_CREATED)
 def create(request: schemas.Book, db:Session = Depends(get_db)):
+    existing_book = db.query(models.Book).filter(models.Book.title == request.title).first()
+    if existing_book:
+        raise HTTPException(
+    status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Book with this name already exists"
+        )
     new_book = models.Book(title=request.title, description = request.description)
     db.add(new_book)
     db.commit()
@@ -85,9 +91,23 @@ def update(book_id: int, request: schemas.Book, db: Session = Depends(get_db)):
     return book
 
 
-@app.delete('/home/{book_id}', status_code=status.HTTP_204_NO_CONTENT)
+@app.delete('/home/{book_id}', status_code=status.HTTP_200_OK, response_model=schemas.showBook)
 def destroy(book_id: int, db: Session = Depends(get_db)):
     db.query(models.Book).filter(models.Book.id == book_id).delete(synchronize_session=False)
     db.commit()
     return 'done'
 
+@app.post('/user')
+def create(request: schemas.User, db:Session = Depends(get_db)):
+    existing_user = db.query(models.User).filter(models.User.email == request.email).first()
+    if existing_user:
+        raise HTTPException(
+    status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User with this email already exists"
+        )
+    
+    new_user = models.User(name = request.name, email = request.email, password = request.password)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
