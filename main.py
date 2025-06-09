@@ -37,12 +37,14 @@
 #     return {'data' : f'Book have been added as Name:{request.title} by Author: {request.author}'}
 
 from fastapi import FastAPI, Depends, HTTPException, status
-import models,schemas
+import models,schemas,hashing
 from database import engine, SessionLocal
 import schemas  
 from sqlalchemy.orm import Session
+
 app = FastAPI()
 models.Base.metadata.create_all(engine)
+
 
 def get_db():
     db = SessionLocal()
@@ -97,17 +99,27 @@ def destroy(book_id: int, db: Session = Depends(get_db)):
     db.commit()
     return 'done'
 
+# pwd_cxt = CryptContext(schemes = ['bcrpyt'], deprecated = 'auto')
+@app.get("/clear-users")
+def clear_users(db: Session = Depends(get_db)):
+    db.query(models.User).delete()
+    db.commit()
+    return {"message": "All users deleted"}
+
 @app.post('/user')
 def create(request: schemas.User, db:Session = Depends(get_db)):
+    
     existing_user = db.query(models.User).filter(models.User.email == request.email).first()
+    print("DEBUG - Existing user:", existing_user)  # <-- Add this
+
     if existing_user:
         raise HTTPException(
     status_code=status.HTTP_400_BAD_REQUEST,
             detail="User with this email already exists"
         )
-    
-    new_user = models.User(name = request.name, email = request.email, password = request.password)
+    new_user = models.User(name = request.name, email = request.email, password = hashing.Hash.bcrypt(request.password))
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     return new_user
+    # print("Received:", request.dict())
