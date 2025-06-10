@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_BASE_URL } from '../src/config.js';
 
 const Register = ({ onRegistrationSuccess }) => {
   const [formData, setFormData] = useState({
@@ -30,7 +31,7 @@ const Register = ({ onRegistrationSuccess }) => {
     try {
       console.log('Sending registration request with data:', formData);
       
-      const response = await fetch('http://localhost:8000/user', {
+      const response = await fetch(`${API_BASE_URL}/user`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

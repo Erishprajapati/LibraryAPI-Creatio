@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_BASE_URL } from '../src/config.js';
 
 const Login = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({
@@ -29,7 +30,7 @@ const Login = ({ onLoginSuccess }) => {
     try {
       console.log('Sending login request with data:', formData);
       
-      const response = await fetch('http://localhost:8000/home/login', {
+      const response = await fetch(`${API_BASE_URL}/home/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

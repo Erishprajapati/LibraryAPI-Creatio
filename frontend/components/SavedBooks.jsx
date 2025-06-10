@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../src/config.js';
 
 const SavedBooks = ({ userData }) => {
   const [savedBooks, setSavedBooks] = useState([]);
@@ -22,7 +23,7 @@ const SavedBooks = ({ userData }) => {
     }
     
     try {
-      const response = await fetch(`http://localhost:8000/user/saved-books?user_email=${userData.email}`);
+      const response = await fetch(`${API_BASE_URL}/user/saved-books?user_email=${userData.email}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -40,7 +41,7 @@ const SavedBooks = ({ userData }) => {
 
   const removeSavedBook = async (savedBookId) => {
     try {
-      const response = await fetch(`http://localhost:8000/user/saved-book/${savedBookId}?user_email=${userData.email}`, {
+      const response = await fetch(`${API_BASE_URL}/user/saved-book/${savedBookId}?user_email=${userData.email}`, {
         method: 'DELETE'
       });
 
