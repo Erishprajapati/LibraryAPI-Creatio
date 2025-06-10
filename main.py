@@ -48,7 +48,11 @@ app.add_middleware(
 )
 
 # Create database tables
-models.Base.metadata.create_all(bind=engine)
+try:
+    models.Base.metadata.create_all(bind=engine)
+    print("Database tables created successfully")
+except Exception as e:
+    print(f"Error creating database tables: {e}")
 
 # Security
 security = HTTPBasic()
@@ -65,6 +69,11 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# Root endpoint for healthcheck
+@app.get("/")
+def root():
+    return {"message": "Library API is running", "status": "healthy"}
 
 # Password hashing
 def verify_password(plain_password, hashed_password):
