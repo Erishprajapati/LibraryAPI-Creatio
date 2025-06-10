@@ -4,13 +4,36 @@ import models,schemas,hashing
 from database import engine, SessionLocal
 import schemas  
 from sqlalchemy.orm import Session
+import os
 
 app = FastAPI()
+
+# Get environment variables for CORS
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+# Configure CORS based on environment
+if ENVIRONMENT == "production":
+    # Production CORS settings
+    origins = [
+        "https://your-frontend-domain.vercel.app",  # Replace with your actual Vercel domain
+        "https://*.vercel.app",  # Allow all Vercel subdomains
+        "https://your-custom-domain.com"  # Replace with your custom domain if any
+    ]
+else:
+    # Development CORS settings
+    origins = [
+        "http://localhost:5173", 
+        "http://localhost:5174", 
+        "http://localhost:3000", 
+        "http://127.0.0.1:5173", 
+        "http://127.0.0.1:5174", 
+        "http://127.0.0.1:3000"
+    ]
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://127.0.0.1:3000"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../src/config.js';
 
 const Home = ({ userData }) => {
   const [books, setBooks] = useState([]);
@@ -9,7 +10,7 @@ const Home = ({ userData }) => {
   const fetchBooks = async () => {
     setLoadingBooks(true);
     try {
-      const response = await fetch('http://localhost:8000/home');
+      const response = await fetch(`${API_BASE_URL}/home`);
       if (response.ok) {
         const booksData = await response.json();
         setBooks(booksData);
@@ -31,7 +32,7 @@ const Home = ({ userData }) => {
     }
     
     try {
-      const response = await fetch(`http://localhost:8000/user/saved-books?user_email=${userData.email}`);
+      const response = await fetch(`${API_BASE_URL}/user/saved-books?user_email=${userData.email}`);
       if (response.ok) {
         const savedData = await response.json();
         const savedBookIds = new Set(savedData.map(saved => saved.book_id));
@@ -49,7 +50,7 @@ const Home = ({ userData }) => {
     }
     
     try {
-      const response = await fetch(`http://localhost:8000/user/save-book?user_email=${userData.email}`, {
+      const response = await fetch(`${API_BASE_URL}/user/save-book?user_email=${userData.email}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -81,13 +82,13 @@ const Home = ({ userData }) => {
     
     try {
       // Find the saved book ID
-      const response = await fetch(`http://localhost:8000/user/saved-books?user_email=${userData.email}`);
+      const response = await fetch(`${API_BASE_URL}/user/saved-books?user_email=${userData.email}`);
       if (response.ok) {
         const savedData = await response.json();
         const savedBook = savedData.find(saved => saved.book_id === bookId);
         
         if (savedBook) {
-          const deleteResponse = await fetch(`http://localhost:8000/user/saved-book/${savedBook.id}?user_email=${userData.email}`, {
+          const deleteResponse = await fetch(`${API_BASE_URL}/user/saved-book/${savedBook.id}?user_email=${userData.email}`, {
             method: 'DELETE'
           });
 

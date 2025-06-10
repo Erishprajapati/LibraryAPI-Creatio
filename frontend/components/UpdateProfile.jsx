@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_BASE_URL } from '../src/config.js';
 
 const UpdateProfile = ({ userData, onUpdateSuccess, onNavigate }) => {
   const [formData, setFormData] = useState({
@@ -23,7 +24,7 @@ const UpdateProfile = ({ userData, onUpdateSuccess, onNavigate }) => {
     try {
       console.log('Updating profile with data:', formData);
       
-      const response = await fetch(`http://localhost:8000/user/update-profile`, {
+      const response = await fetch(`${API_BASE_URL}/user/update-profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
