@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const Register = () => {
+const Register = ({ onRegistrationSuccess }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -9,12 +9,17 @@ const Register = () => {
 
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
     }));
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleSubmit = async (e) => {
@@ -46,6 +51,11 @@ const Register = () => {
           email: '',
           password: ''
         });
+        
+        // Call the success callback to navigate to login
+        if (onRegistrationSuccess) {
+          onRegistrationSuccess();
+        }
       } else {
         const errorData = await response.json();
         console.error('Registration failed:', errorData);
@@ -94,15 +104,25 @@ const Register = () => {
         </div>
         <div className="mb-3">
           <label>Password</label>
-          <input 
-            type="password" 
-            className="form-control" 
-            name="password" 
-            value={formData.password}
-            onChange={handleChange}
-            required 
-            disabled={isLoading}
-          />
+          <div className="input-group">
+            <input 
+              type={showPassword ? "text" : "password"}
+              className="form-control" 
+              name="password" 
+              value={formData.password}
+              onChange={handleChange}
+              required 
+              disabled={isLoading}
+            />
+            <button 
+              type="button" 
+              className="btn btn-outline-secondary" 
+              onClick={togglePasswordVisibility}
+              disabled={isLoading}
+            >
+              {showPassword ? "🙈" : "👁️"}
+            </button>
+          </div>
         </div>
         <button 
           className="btn btn-primary" 

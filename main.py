@@ -10,7 +10,7 @@ app = FastAPI()
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,7 +33,12 @@ def create(request: schemas.Book, db:Session = Depends(get_db)):
     status_code=status.HTTP_400_BAD_REQUEST,
             detail="Book with this name already exists"
         )
-    new_book = models.Book(title=request.title, description = request.description)
+    new_book = models.Book(
+        title=request.title, 
+        description=request.description,
+        author=request.author,
+        published_date=request.published_date
+    )
     db.add(new_book)
     db.commit()
     db.refresh(new_book)
@@ -59,6 +64,8 @@ def update(book_id: int, request: schemas.Book, db: Session = Depends(get_db)):
 
     book.title = request.title
     book.description = request.description
+    book.author = request.author
+    book.published_date = request.published_date
     db.commit()
     db.refresh(book)
     return book
@@ -102,7 +109,7 @@ def get_user(user_id:int,  db:Session = Depends(get_db)):
 
 
 @app.post('/home/login', tags=['library'])
-def login_user(request: schemas.User, db: Session = Depends(get_db)):
+def login_user(request: schemas.LoginUser, db: Session = Depends(get_db)):
 
     # Query user by email
     user = db.query(models.User).filter(models.User.email == request.email).first()
@@ -115,4 +122,111 @@ def login_user(request: schemas.User, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
 
     # If password correct
-    return {"message": "Welcome to library system", "user": user.name}
+    return {"message": "Welcome to library system", "user": user.name, "email": user.email}
+
+@app.put('/user/update-profile', tags=['library'])
+def update_user_profile(request: schemas.UpdateUserProfile, db: Session = Depends(get_db)):
+    # For now, we'll update the first user found with the given email
+    # In a real application, you'd use authentication to identify the current user
+    user = db.query(models.User).filter(models.User.email == request.email).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="User not found"
+        )
+    
+    # Update user information
+    user.name = request.name
+    user.email = request.email
+    
+    db.commit()
+    db.refresh(user)
+    
+    return {"message": "Profile updated successfully", "user": user.name, "email": user.email}
+
+# Save book endpoints
+@app.post('/user/save-book', tags=['library'])
+def save_book(request: schemas.SavedBook, user_email: str, db: Session = Depends(get_db)):
+    # Find user by email
+    user = db.query(models.User).filter(models.User.email == user_email).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    # Check if book exists
+    book = db.query(models.Book).filter(models.Book.id == request.book_id).first()
+    if not book:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    
+    # Check if already saved
+    existing_save = db.query(models.SavedBook).filter(
+        models.SavedBook.user_id == user.id,
+        models.SavedBook.book_id == request.book_id
+    ).first()
+    
+    if existing_save:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Book already saved")
+    
+    # Save the book
+    saved_book = models.SavedBook(user_id=user.id, book_id=request.book_id)
+    db.add(saved_book)
+    db.commit()
+    db.refresh(saved_book)
+    
+    return {"message": "Book saved successfully"}
+
+@app.get('/user/saved-books', tags=['library'])
+def get_saved_books(user_email: str, db: Session = Depends(get_db)):
+    print(f"DEBUG - Getting saved books for user: {user_email}")
+    
+    # Find user by email
+    user = db.query(models.User).filter(models.User.email == user_email).first()
+    if not user:
+        print(f"DEBUG - User not found for email: {user_email}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    print(f"DEBUG - User found: {user.name}")
+    
+    # Get saved books with book details
+    saved_books = db.query(models.SavedBook).filter(models.SavedBook.user_id == user.id).all()
+    print(f"DEBUG - Found {len(saved_books)} saved books")
+    
+    result = []
+    for saved_book in saved_books:
+        book = db.query(models.Book).filter(models.Book.id == saved_book.book_id).first()
+        if book:
+            result.append({
+                "id": saved_book.id,
+                "book_id": saved_book.book_id,
+                "book": {
+                    "id": book.id,
+                    "title": book.title,
+                    "description": book.description,
+                    "author": book.author,
+                    "published_date": book.published_date
+                }
+            })
+    
+    print(f"DEBUG - Returning {len(result)} saved books")
+    return result
+
+@app.delete('/user/saved-book/{saved_book_id}', tags=['library'])
+def remove_saved_book(saved_book_id: int, user_email: str, db: Session = Depends(get_db)):
+    # Find user by email
+    user = db.query(models.User).filter(models.User.email == user_email).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    # Find and delete the saved book
+    saved_book = db.query(models.SavedBook).filter(
+        models.SavedBook.id == saved_book_id,
+        models.SavedBook.user_id == user.id
+    ).first()
+    
+    if not saved_book:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved book not found")
+    
+    db.delete(saved_book)
+    db.commit()
+    
+    return {"message": "Book removed from saved list"}
