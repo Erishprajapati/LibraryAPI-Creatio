@@ -1,10 +1,18 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-import models,schemas,hashing
-from database import engine, SessionLocal
-import schemas  
 from sqlalchemy.orm import Session
 import os
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from passlib.context import CryptContext
+import uvicorn
+from datetime import datetime, timedelta
+import jwt
+from typing import List, Optional
+
+from database import engine, SessionLocal
+import models
+import schemas
+import hashing
 
 app = FastAPI()
 
@@ -39,7 +47,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-models.Base.metadata.create_all(engine)
+# Create database tables
+models.Base.metadata.create_all(bind=engine)
+
+# Security
+security = HTTPBasic()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# JWT settings
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")  # Use environment variable in production
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 def get_db():
     db = SessionLocal()
@@ -47,6 +65,24 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# Password hashing
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+# JWT token functions
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
 @app.post('/create', status_code=status.HTTP_201_CREATED)
 def create(request: schemas.Book, db:Session = Depends(get_db)):
@@ -123,6 +159,7 @@ def create(request: schemas.User, db:Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     return new_user
+
 @app.get('/user/{user_id}', response_model=schemas.ShowUser)
 def get_user(user_id:int,  db:Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == user_id).first()
@@ -166,90 +203,86 @@ def update_user_profile(request: schemas.UpdateUserProfile, db: Session = Depend
     db.commit()
     db.refresh(user)
     
-    return {"message": "Profile updated successfully", "user": user.name, "email": user.email}
+    return {"message": "Profile updated successfully", "user": {"email": user.email, "name": user.name}}
 
-# Save book endpoints
 @app.post('/user/save-book', tags=['library'])
 def save_book(request: schemas.SavedBook, user_email: str, db: Session = Depends(get_db)):
     # Find user by email
     user = db.query(models.User).filter(models.User.email == user_email).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found")
     
     # Check if book exists
     book = db.query(models.Book).filter(models.Book.id == request.book_id).first()
     if not book:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+        raise HTTPException(status_code=404, detail="Book not found")
     
     # Check if already saved
     existing_save = db.query(models.SavedBook).filter(
-        models.SavedBook.user_id == user.id,
+        models.SavedBook.user_email == user_email,
         models.SavedBook.book_id == request.book_id
     ).first()
     
     if existing_save:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Book already saved")
+        raise HTTPException(status_code=400, detail="Book already saved")
     
-    # Save the book
-    saved_book = models.SavedBook(user_id=user.id, book_id=request.book_id)
+    # Save book
+    saved_book = models.SavedBook(user_email=user_email, book_id=request.book_id)
     db.add(saved_book)
     db.commit()
-    db.refresh(saved_book)
     
     return {"message": "Book saved successfully"}
 
 @app.get('/user/saved-books', tags=['library'])
 def get_saved_books(user_email: str, db: Session = Depends(get_db)):
-    print(f"DEBUG - Getting saved books for user: {user_email}")
+    # Get saved book IDs for user
+    saved_books = db.query(models.SavedBook).filter(models.SavedBook.user_email == user_email).all()
     
-    # Find user by email
-    user = db.query(models.User).filter(models.User.email == user_email).first()
-    if not user:
-        print(f"DEBUG - User not found for email: {user_email}")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    # Get book details for saved books
+    book_ids = [saved.book_id for saved in saved_books]
+    books = db.query(models.Book).filter(models.Book.id.in_(book_ids)).all()
     
-    print(f"DEBUG - User found: {user.name}")
-    
-    # Get saved books with book details
-    saved_books = db.query(models.SavedBook).filter(models.SavedBook.user_id == user.id).all()
-    print(f"DEBUG - Found {len(saved_books)} saved books")
-    
-    result = []
-    for saved_book in saved_books:
-        book = db.query(models.Book).filter(models.Book.id == saved_book.book_id).first()
-        if book:
-            result.append({
-                "id": saved_book.id,
-                "book_id": saved_book.book_id,
-                "book": {
-                    "id": book.id,
-                    "title": book.title,
-                    "description": book.description,
-                    "author": book.author,
-                    "published_date": book.published_date
-                }
-            })
-    
-    print(f"DEBUG - Returning {len(result)} saved books")
-    return result
+    return books
 
 @app.delete('/user/saved-book/{saved_book_id}', tags=['library'])
 def remove_saved_book(saved_book_id: int, user_email: str, db: Session = Depends(get_db)):
     # Find user by email
     user = db.query(models.User).filter(models.User.email == user_email).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found")
     
-    # Find and delete the saved book
+    # Find saved book
     saved_book = db.query(models.SavedBook).filter(
         models.SavedBook.id == saved_book_id,
-        models.SavedBook.user_id == user.id
+        models.SavedBook.user_email == user_email
     ).first()
     
     if not saved_book:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved book not found")
+        raise HTTPException(status_code=404, detail="Saved book not found")
     
+    # Remove saved book
     db.delete(saved_book)
     db.commit()
     
     return {"message": "Book removed from saved list"}
+
+@app.delete('/user/remove-saved-book', tags=['library'])
+def remove_saved_book_by_book_id(user_email: str, book_id: int, db: Session = Depends(get_db)):
+    # Find saved book
+    saved_book = db.query(models.SavedBook).filter(
+        models.SavedBook.user_email == user_email,
+        models.SavedBook.book_id == book_id
+    ).first()
+    
+    if not saved_book:
+        raise HTTPException(status_code=404, detail="Saved book not found")
+    
+    # Remove saved book
+    db.delete(saved_book)
+    db.commit()
+    
+    return {"message": "Book removed from saved list"}
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
