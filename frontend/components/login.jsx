@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const Login = () => {
+const Login = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -8,14 +8,17 @@ const Login = () => {
 
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userData, setUserData] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
     }));
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleSubmit = async (e) => {
@@ -40,8 +43,6 @@ const Login = () => {
       if (response.ok) {
         const data = await response.json();
         setMessage('Login successful!');
-        setIsLoggedIn(true);
-        setUserData(data);
         console.log('Login successful:', data);
         
         // Clear form after successful login
@@ -49,52 +50,34 @@ const Login = () => {
           email: '',
           password: ''
         });
+        
+        // Call the parent component's success handler
+        onLoginSuccess(data);
       } else {
         const errorData = await response.json();
         console.error('Login failed:', errorData);
-        setMessage(errorData.detail || `Login failed with status: ${response.status}`);
-        setIsLoggedIn(false);
-        setUserData(null);
+        
+        // Handle different types of error responses
+        let errorMessage = 'Login failed';
+        if (errorData.detail) {
+          errorMessage = errorData.detail;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (Array.isArray(errorData)) {
+          errorMessage = errorData.map(err => err.msg || err.message).join(', ');
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+        
+        setMessage(errorMessage);
       }
     } catch (err) {
       console.error('Network error:', err);
       setMessage('Network error: Unable to connect to the server. Please check if the backend is running.');
-      setIsLoggedIn(false);
-      setUserData(null);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserData(null);
-    setMessage('');
-  };
-
-  if (isLoggedIn && userData) {
-    return (
-      <div className="container mt-5">
-        <div className="row justify-content-center">
-          <div className="col-md-6">
-            <div className="card">
-              <div className="card-body text-center">
-                <h2 className="card-title text-success">Welcome!</h2>
-                <p className="card-text">{userData.message}</p>
-                <p className="card-text"><strong>User:</strong> {userData.user}</p>
-                <button 
-                  className="btn btn-primary" 
-                  onClick={handleLogout}
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mt-5">
@@ -124,16 +107,26 @@ const Login = () => {
                 </div>
                 <div className="mb-3">
                   <label className="form-label">Password</label>
-                  <input 
-                    type="password" 
-                    className="form-control" 
-                    name="password" 
-                    value={formData.password}
-                    onChange={handleChange}
-                    required 
-                    disabled={isLoading}
-                    placeholder="Enter your password"
-                  />
+                  <div className="input-group">
+                    <input 
+                      type={showPassword ? "text" : "password"}
+                      className="form-control" 
+                      name="password" 
+                      value={formData.password}
+                      onChange={handleChange}
+                      required 
+                      disabled={isLoading}
+                      placeholder="Enter your password"
+                    />
+                    <button 
+                      type="button" 
+                      className="btn btn-outline-secondary" 
+                      onClick={togglePasswordVisibility}
+                      disabled={isLoading}
+                    >
+                      {showPassword ? "🙈" : "👁️"}
+                    </button>
+                  </div>
                 </div>
                 <div className="d-grid">
                   <button 
