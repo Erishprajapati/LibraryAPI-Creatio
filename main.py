@@ -99,3 +99,20 @@ def get_user(user_id:int,  db:Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+
+@app.post('/home/login', tags=['library'])
+def login_user(request: schemas.User, db: Session = Depends(get_db)):
+
+    # Query user by email
+    user = db.query(models.User).filter(models.User.email == request.email).first()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User does not exist")
+
+    # Verify password
+    if not hashing.Hash.verify(request.password, user.password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
+
+    # If password correct
+    return {"message": "Welcome to library system", "user": user.name}

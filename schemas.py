@@ -5,7 +5,7 @@ class Book(BaseModel):
 
 class showBook(Book):
     class Config():
-        orm_mode = True
+        from_attributes = True
 
 
 class User(BaseModel):
