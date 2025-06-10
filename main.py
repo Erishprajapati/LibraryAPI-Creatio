@@ -1,41 +1,3 @@
-# from fastapi import FastAPI
-# from typing import Optional
-# from pydantic import BaseModel
-# app = FastAPI()
-# @app.get('/')
-# def home(limit =  10, published:bool = True):
-#     """messages are sent in key value pair for now to check"""
-#     if published:
-#         return {'data': f'{limit} books shown from Library Management System'}
-#     else:
-#         return None
-
-# @app.get('/home/unpublished')
-# def unpublished_books():
-#     return {'data' : "List of unpublished books:"}
-
-# @app.get('/about')
-# def about_page():
-#     return {'data' : "Welcome to about section"}
-
-# @app.get('/home/{book_id}')
-# def specific_book(book_id:int): #to get specific book with the id
-#     return {'data':12} 
-
-# @app.get('/home/{book_id}/comments')
-# def comments(book_id:int, limit = 10): #type hinting to make id as integer to pass integer only
-#     return {'data': {'1','2','3'}} 
-
-# class Book(BaseModel):
-#     title:str
-#     description: str
-#     author : str
-#     published_date: Optional[bool]
-
-# @app.post('/library')
-# def add_book(request: Book):
-#     return {'data' : f'Book have been added as Name:{request.title} by Author: {request.author}'}
-
 from fastapi import FastAPI, Depends, HTTPException, status
 import models,schemas,hashing
 from database import engine, SessionLocal
@@ -52,7 +14,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
 
 @app.post('/create', status_code=status.HTTP_201_CREATED)
 def create(request: schemas.Book, db:Session = Depends(get_db)):
@@ -106,7 +67,7 @@ def clear_users(db: Session = Depends(get_db)):
     db.commit()
     return {"message": "All users deleted"}
 
-@app.post('/user')
+@app.post('/user', response_model=schemas.ShowUser)
 def create(request: schemas.User, db:Session = Depends(get_db)):
     
     existing_user = db.query(models.User).filter(models.User.email == request.email).first()
@@ -122,4 +83,9 @@ def create(request: schemas.User, db:Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     return new_user
-    # print("Received:", request.dict())
+@app.get('/user/{user_id}', response_model=schemas.ShowUser)
+def get_user(user_id:int,  db:Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
