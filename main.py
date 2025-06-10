@@ -1,12 +1,22 @@
 from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 import models,schemas,hashing
 from database import engine, SessionLocal
 import schemas  
 from sqlalchemy.orm import Session
 
 app = FastAPI()
-models.Base.metadata.create_all(engine)
 
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+models.Base.metadata.create_all(engine)
 
 def get_db():
     db = SessionLocal()
@@ -67,7 +77,7 @@ def clear_users(db: Session = Depends(get_db)):
     db.commit()
     return {"message": "All users deleted"}
 
-@app.post('/user', response_model=schemas.ShowUser)
+@app.post('/user', response_model=schemas.ShowUser, tags = ['library'])
 def create(request: schemas.User, db:Session = Depends(get_db)):
     
     existing_user = db.query(models.User).filter(models.User.email == request.email).first()
