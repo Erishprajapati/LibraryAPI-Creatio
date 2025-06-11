@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 import os
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from passlib.context import CryptContext
@@ -161,7 +162,7 @@ def create(request: schemas.User, db:Session = Depends(get_db)):
         
         # Test database connection
         try:
-            db.execute("SELECT 1")
+            db.execute(text("SELECT 1"))
             print("DEBUG - Database connection successful")
         except Exception as db_error:
             print(f"DEBUG - Database connection failed: {str(db_error)}")
@@ -341,3 +342,4 @@ if __name__ == "__main__":
 # Manual CORS fix Wed Jun 11 09:49:27 +0545 2025
 # Simple CORS fix Wed Jun 11 09:54:28 +0545 2025
 # Add detailed error logging Wed Jun 11 09:59:17 +0545 2025
+# Fix database connection test Wed Jun 11 10:09:45 +0545 2025
