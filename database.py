@@ -4,10 +4,10 @@ from sqlalchemy.orm import sessionmaker
 import os
 
 # PostgreSQL database configuration
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
-    "postgresql://postgres:4696@localhost:5432/APIConnection"
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set")
 
 # Create engine
 engine = create_engine(DATABASE_URL)
