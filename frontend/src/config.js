@@ -1,4 +1,5 @@
 // Configuration for API URLs
+// Updated for Render deployment - CORS fix applied
 const config = {
   // Development environment
   development: {
