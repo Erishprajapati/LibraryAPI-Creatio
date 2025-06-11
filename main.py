@@ -16,41 +16,13 @@ import hashing
 
 app = FastAPI()
 
-# Get environment variables for CORS
-ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
-
-# Configure CORS based on environment
-if ENVIRONMENT == "production":
-    # Production CORS settings - explicitly allow frontend domain
-    origins = [
-        "https://libraryapi-creatio-1.onrender.com",
-        "https://libraryapi-creatio-1.onrender.com/",
-        "http://localhost:5173", 
-        "http://localhost:5174", 
-        "http://localhost:3000", 
-        "http://127.0.0.1:5173", 
-        "http://127.0.0.1:5174", 
-        "http://127.0.0.1:3000"
-    ]
-else:
-    # Development CORS settings
-    origins = [
-        "http://localhost:5173", 
-        "http://localhost:5174", 
-        "http://localhost:3000", 
-        "http://127.0.0.1:5173", 
-        "http://127.0.0.1:5174", 
-        "http://127.0.0.1:3000"
-    ]
-
-# Add CORS middleware with proper configuration
+# Configure CORS - Allow all origins for now to fix the issue
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],  # Allow all origins
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
 )
 
 # Create database tables
@@ -317,3 +289,4 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=port)# Force redeploy Wed Jun 11 08:40:26 +0545 2025
 # CORS fix Wed Jun 11 09:29:27 +0545 2025
 # CORS fix v2 Wed Jun 11 09:43:52 +0545 2025
+# Final CORS fix Wed Jun 11 09:47:26 +0545 2025
