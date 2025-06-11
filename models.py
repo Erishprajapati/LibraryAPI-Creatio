@@ -15,7 +15,7 @@ class Book(Base):
     saved_by = relationship("SavedBook", back_populates="book")
 
 class User(Base):
-    __tablename__ = 'users'
+    __tablename__ = 'Userss'
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
@@ -29,9 +29,10 @@ class SavedBook(Base):
     __tablename__ = 'saved_books'
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
+    user_id = Column(Integer, ForeignKey('Userss.id'))
     book_id = Column(Integer, ForeignKey('books.id'))
     
     # Relationships
     user = relationship("User", back_populates="saved_books")
     book = relationship("Book", back_populates="saved_by")
+# Revert table name Wed Jun 11 09:50:42 +0545 2025
