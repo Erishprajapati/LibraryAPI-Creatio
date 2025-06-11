@@ -23,6 +23,8 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 if ENVIRONMENT == "production":
     # Production CORS settings
     origins = [
+        "https://libraryapi-creatio-1.onrender.com",  # Your Render frontend
+        "https://*.onrender.com",  # Allow all Render subdomains
         "https://your-frontend-domain.vercel.app",  # Replace with your actual Vercel domain
         "https://*.vercel.app",  # Allow all Vercel subdomains
         "https://your-custom-domain.com"  # Replace with your custom domain if any
