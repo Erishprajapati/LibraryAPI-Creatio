@@ -157,21 +157,52 @@ def clear_users(db: Session = Depends(get_db)):
 @app.post('/user', response_model=schemas.ShowUser, tags = ['library'])
 def create(request: schemas.User, db:Session = Depends(get_db)):
     try:
+        print(f"DEBUG - Starting user creation for email: {request.email}")
+        
+        # Test database connection
+        try:
+            db.execute("SELECT 1")
+            print("DEBUG - Database connection successful")
+        except Exception as db_error:
+            print(f"DEBUG - Database connection failed: {str(db_error)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Database connection error: {str(db_error)}"
+            )
+        
         existing_user = db.query(models.User).filter(models.User.email == request.email).first()
-        print("DEBUG - Existing user:", existing_user)  # <-- Add this
+        print("DEBUG - Existing user:", existing_user)
 
         if existing_user:
             raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User with this email already exists"
             )
-        new_user = models.User(name = request.name, email = request.email, password = hashing.Hash.bcrypt(request.password))
+        
+        print("DEBUG - Creating new user...")
+        hashed_password = hashing.Hash.bcrypt(request.password)
+        print("DEBUG - Password hashed successfully")
+        
+        new_user = models.User(name=request.name, email=request.email, password=hashed_password)
+        print("DEBUG - User object created")
+        
         db.add(new_user)
+        print("DEBUG - User added to session")
+        
         db.commit()
+        print("DEBUG - User committed to database")
+        
         db.refresh(new_user)
+        print("DEBUG - User refreshed from database")
+        
         return new_user
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"ERROR in user creation: {str(e)}")
+        print(f"ERROR type: {type(e)}")
+        import traceback
+        print(f"ERROR traceback: {traceback.format_exc()}")
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -309,3 +340,4 @@ if __name__ == "__main__":
 # Final CORS fix Wed Jun 11 09:47:26 +0545 2025
 # Manual CORS fix Wed Jun 11 09:49:27 +0545 2025
 # Simple CORS fix Wed Jun 11 09:54:28 +0545 2025
+# Add detailed error logging Wed Jun 11 09:59:17 +0545 2025
