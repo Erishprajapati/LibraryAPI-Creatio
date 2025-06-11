@@ -43,13 +43,14 @@ else:
         "http://127.0.0.1:3000"
     ]
 
-# Add CORS middleware
+# Add CORS middleware with proper configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Create database tables
@@ -88,6 +89,11 @@ def debug():
         "cors_origins": origins,
         "message": "CORS configuration debug info"
     }
+
+# Test endpoint for CORS
+@app.post("/test-cors")
+def test_cors():
+    return {"message": "CORS is working!", "status": "success"}
 
 # Password hashing
 def verify_password(plain_password, hashed_password):
@@ -310,3 +316,4 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)# Force redeploy Wed Jun 11 08:40:26 +0545 2025
 # CORS fix Wed Jun 11 09:29:27 +0545 2025
+# CORS fix v2 Wed Jun 11 09:43:52 +0545 2025
