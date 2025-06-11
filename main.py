@@ -17,24 +17,14 @@ import hashing
 
 app = FastAPI()
 
-# Configure CORS - Allow all origins for now to fix the issue
+# Simple CORS configuration that works
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
-    allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
+    allow_origins=["*"],
+    allow_credentials=False,  # Changed to False to avoid issues
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-
-# Manual CORS middleware to ensure headers are always present
-@app.middleware("http")
-async def add_cors_headers(request, call_next):
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
 
 # Create database tables
 try:
@@ -77,6 +67,15 @@ def debug():
 @app.post("/test-cors")
 def test_cors():
     return {"message": "CORS is working!", "status": "success"}
+
+# Simple test endpoint for CORS
+@app.get("/cors-test")
+def cors_test():
+    return {"message": "CORS is working!", "status": "success"}
+
+@app.post("/cors-test")
+def cors_test_post():
+    return {"message": "CORS POST is working!", "status": "success"}
 
 # Password hashing
 def verify_password(plain_password, hashed_password):
@@ -309,3 +308,4 @@ if __name__ == "__main__":
 # CORS fix v2 Wed Jun 11 09:43:52 +0545 2025
 # Final CORS fix Wed Jun 11 09:47:26 +0545 2025
 # Manual CORS fix Wed Jun 11 09:49:27 +0545 2025
+# Simple CORS fix Wed Jun 11 09:54:28 +0545 2025
