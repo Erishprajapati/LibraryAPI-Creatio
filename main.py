@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import os
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -24,6 +25,16 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
 )
+
+# Manual CORS middleware to ensure headers are always present
+@app.middleware("http")
+async def add_cors_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 # Create database tables
 try:
@@ -146,20 +157,27 @@ def clear_users(db: Session = Depends(get_db)):
 
 @app.post('/user', response_model=schemas.ShowUser, tags = ['library'])
 def create(request: schemas.User, db:Session = Depends(get_db)):
-    
-    existing_user = db.query(models.User).filter(models.User.email == request.email).first()
-    print("DEBUG - Existing user:", existing_user)  # <-- Add this
+    try:
+        existing_user = db.query(models.User).filter(models.User.email == request.email).first()
+        print("DEBUG - Existing user:", existing_user)  # <-- Add this
 
-    if existing_user:
+        if existing_user:
+            raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User with this email already exists"
+            )
+        new_user = models.User(name = request.name, email = request.email, password = hashing.Hash.bcrypt(request.password))
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return new_user
+    except Exception as e:
+        print(f"ERROR in user creation: {str(e)}")
+        db.rollback()
         raise HTTPException(
-    status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User with this email already exists"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
         )
-    new_user = models.User(name = request.name, email = request.email, password = hashing.Hash.bcrypt(request.password))
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
 
 @app.get('/user/{user_id}', response_model=schemas.ShowUser)
 def get_user(user_id:int,  db:Session = Depends(get_db)):
@@ -290,3 +308,4 @@ if __name__ == "__main__":
 # CORS fix Wed Jun 11 09:29:27 +0545 2025
 # CORS fix v2 Wed Jun 11 09:43:52 +0545 2025
 # Final CORS fix Wed Jun 11 09:47:26 +0545 2025
+# Manual CORS fix Wed Jun 11 09:49:27 +0545 2025
