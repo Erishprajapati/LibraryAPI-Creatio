@@ -4,9 +4,9 @@ const config = {
   development: {
     apiUrl: 'http://localhost:8000'
   },
-  // Production environment - you'll update this with your deployed backend URL
+  // Production environment - updated with your deployed backend URL
   production: {
-    apiUrl: 'https://your-backend-url.railway.app' // Update this with your actual backend URL
+    apiUrl: 'https://libraryapi-creatio.onrender.com'
   }
 };
 
