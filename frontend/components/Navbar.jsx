@@ -29,25 +29,25 @@ const Navbar = ({ userData, onLogout, onNavigate }) => {
               className="nav-link btn btn-link text-white" 
               onClick={() => onNavigate('home')}
             >
-              🏠 Home
+              Home
             </button>
             <button 
               className="nav-link btn btn-link text-white" 
               onClick={() => onNavigate('saved')}
             >
-              📚 Saved Books
+              Saved Books
             </button>
             <button 
               className="nav-link btn btn-link text-white" 
               onClick={() => onNavigate('profile')}
             >
-              👤 Update Profile
+              Update Profile
             </button>
             <button 
               className="nav-link btn btn-link text-white" 
               onClick={handleLogoutClick}
             >
-              🚪 Logout
+              Logout
             </button>
           </div>
         </div>
