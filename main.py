@@ -21,9 +21,16 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
 # Configure CORS based on environment
 if ENVIRONMENT == "production":
-    # Production CORS settings - allow all origins for now
+    # Production CORS settings - explicitly allow frontend domain
     origins = [
-        "*"  # Allow all origins temporarily
+        "https://libraryapi-creatio-1.onrender.com",
+        "https://libraryapi-creatio-1.onrender.com/",
+        "http://localhost:5173", 
+        "http://localhost:5174", 
+        "http://localhost:3000", 
+        "http://127.0.0.1:5173", 
+        "http://127.0.0.1:5174", 
+        "http://127.0.0.1:3000"
     ]
 else:
     # Development CORS settings
@@ -72,6 +79,15 @@ def get_db():
 @app.get("/")
 def root():
     return {"message": "Library API is running", "status": "healthy"}
+
+# Debug endpoint to check CORS configuration
+@app.get("/debug")
+def debug():
+    return {
+        "environment": ENVIRONMENT,
+        "cors_origins": origins,
+        "message": "CORS configuration debug info"
+    }
 
 # Password hashing
 def verify_password(plain_password, hashed_password):
@@ -293,3 +309,4 @@ def remove_saved_book_by_book_id(user_email: str, book_id: int, db: Session = De
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)# Force redeploy Wed Jun 11 08:40:26 +0545 2025
+# CORS fix Wed Jun 11 09:29:27 +0545 2025
